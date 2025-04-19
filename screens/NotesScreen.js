@@ -1,27 +1,61 @@
-import React, { useEffect } from 'react';
-import { View, Text, Button, TouchableOpacity, StyleSheet } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, TouchableOpacity, FlatList, StyleSheet } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
-import { loadNotes } from '../storage/NotesStorage';
+import { useFocusEffect } from '@react-navigation/native';
+import { loadNotes, saveNote } from '../storage/NotesStorage';
 
 export default function NotesScreen({ navigation }) {
+  const [notes, setNotes] = useState([]);
+
+  // Sayfa her odaklandığında notları yeniden yükle
+  useFocusEffect(
+    React.useCallback(() => {
+      const fetchNotes = async () => {
+        const loadedNotes = await loadNotes();
+        setNotes(loadedNotes);
+      };
+
+      fetchNotes();
+    }, [])
+  );
+
+  // NoteDetailScreen'den geri dönüldüğünde notları güncelle
   useEffect(() => {
-    const fetchNotes = async () => {
-      const notes = await loadNotes();
-      console.log(notes); // Burada notlarımı kontrol edebilirsin
+    const unsubscribe = navigation.addListener('focus', async () => {
+      const loadedNotes = await loadNotes();
+      setNotes(loadedNotes);
+    });
+
+    return unsubscribe; // Dinleyiciyi kaldır
+  }, [navigation]);
+
+  const handleAddNote = async () => {
+    const newNote = {
+      id: Date.now().toString(),
+      title: 'Yeni Not',
+      content: '',
     };
-    
-    fetchNotes();
-  }, []);
+    await saveNote(newNote);
+    setNotes((prevNotes) => [...prevNotes, newNote]);
+  };
+
+  const renderNote = ({ item }) => (
+    <TouchableOpacity
+      style={styles.noteItem}
+      onPress={() => navigation.navigate('NoteDetail', { note: item })}
+    >
+      <Text style={styles.noteTitle}>{item.title}</Text>
+    </TouchableOpacity>
+  );
 
   return (
     <View style={styles.container}>
-      <Text>Notes List</Text>
-      <TouchableOpacity
-        style={styles.addButton}
-        onPress={() => {
-          navigation.navigate('NoteDetail', { isNew: true });
-        }}
-      >
+      <FlatList
+        data={notes}
+        keyExtractor={(item) => item.id}
+        renderItem={renderNote}
+      />
+      <TouchableOpacity style={styles.addButton} onPress={handleAddNote}>
         <Icon name="add" size={30} color="white" />
       </TouchableOpacity>
     </View>
@@ -30,6 +64,12 @@ export default function NotesScreen({ navigation }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 16 },
+  noteItem: {
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#ccc',
+  },
+  noteTitle: { fontSize: 18 },
   addButton: {
     position: 'absolute',
     bottom: 30,

@@ -1,42 +1,29 @@
-import * as FileSystem from 'expo-file-system';
-import { parseStringPromise, Builder } from 'xml2js';
-
-const path = FileSystem.documentDirectory + 'notes.xml';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export async function loadNotes() {
   try {
-    const exists = await FileSystem.getInfoAsync(path);
-    if (!exists.exists) {
-      const initialXml = new Builder().buildObject({ notes: { note: [] } });
-      await FileSystem.writeAsStringAsync(path, initialXml, { encoding: FileSystem.EncodingType.UTF8 });
-      return [];
+    const notesJson = await AsyncStorage.getItem('notes');
+    if (notesJson) {
+      return JSON.parse(notesJson);
     }
-    const xml = await FileSystem.readAsStringAsync(path, { encoding: FileSystem.EncodingType.UTF8 });
-    const result = await parseStringPromise(xml);
-    const notes = result.notes.note || [];
-    return notes.map((n, i) => ({
-      id: n.id?.[0] || i.toString(),
-      title: n.title?.[0] || '',
-      content: n.content?.[0] || '',
-    }));
+    return [];
   } catch (e) {
     console.error('loadNotes error:', e);
     return [];
   }
 }
 
-export async function saveNote(newNote) {
-  const xml = await FileSystem.readAsStringAsync(path, { encoding: FileSystem.EncodingType.UTF8 });
-  const result = await parseStringPromise(xml);
-  const notes = result.notes.note || [];
-
-  const updatedNotes = [...notes, {
-    id: [newNote.id],
-    title: [newNote.title],
-    content: [newNote.content],
-  }];
-
-  const builder = new Builder();
-  const newXml = builder.buildObject({ notes: { note: updatedNotes } });
-  await FileSystem.writeAsStringAsync(path, newXml, { encoding: FileSystem.EncodingType.UTF8 });
+export async function saveNote(updatedNote) {
+  try {
+    const notes = await loadNotes();
+    const noteIndex = notes.findIndex((note) => note.id === updatedNote.id);
+    if (noteIndex !== -1) {
+      notes[noteIndex] = updatedNote;
+    } else {
+      notes.push(updatedNote);
+    }
+    await AsyncStorage.setItem('notes', JSON.stringify(notes));
+  } catch (e) {
+    console.error('saveNote error:', e);
+  }
 }
