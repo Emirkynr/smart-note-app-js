@@ -1,15 +1,24 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { View, Text, Button, TouchableOpacity, StyleSheet } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
+import { loadNotes } from '../storage/NotesStorage';
 
 export default function NotesScreen({ navigation }) {
+  useEffect(() => {
+    const fetchNotes = async () => {
+      const notes = await loadNotes();
+      console.log(notes); // Burada notlarımı kontrol edebilirsin
+    };
+    
+    fetchNotes();
+  }, []);
+
   return (
     <View style={styles.container}>
       <Text>Notes List</Text>
       <TouchableOpacity
         style={styles.addButton}
         onPress={() => {
-          // Yeni not oluşturma fonksiyonuna yönlendirme yapılacak
           navigation.navigate('NoteDetail', { isNew: true });
         }}
       >

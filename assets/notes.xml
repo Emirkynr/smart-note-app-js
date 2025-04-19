@@ -1,0 +1,12 @@
+<notes>
+  <note>
+    <id>1</id>
+    <title>İlk Not</title>
+    <content>Bu ilk notun içeriğidir.</content>
+  </note>
+  <note>
+    <id>2</id>
+    <title>İkinci Not</title>
+    <content>İkinci notun içeriği buraya gelecek.</content>
+  </note>
+</notes>
