@@ -5,8 +5,10 @@ import { useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { loadNotes, saveNote } from '../storage/NotesStorage';
 import { BackHandler } from 'react-native';
+import { useTranslation } from '../locales/TranslationProvider';
 
 export default function NotesScreen({ navigation }) {
+  const { t } = useTranslation();
   const [notes, setNotes] = useState([]);
   const [editMode, setEditMode] = useState(false);
   const [selectedNotes, setSelectedNotes] = useState([]);
@@ -38,7 +40,7 @@ export default function NotesScreen({ navigation }) {
       BackHandler.removeEventListener('hardwareBackPress', onBackPress);
     };
   }, [editMode]);
-  
+
   useEffect(() => {
     navigation.setOptions({
       headerRight: () => (
@@ -80,6 +82,12 @@ export default function NotesScreen({ navigation }) {
 
     return unsubscribe;
   }, [navigation, editMode]);
+
+  useEffect(() => {
+    navigation.setOptions({
+      title: t('NotesPageName'), // Header başlığını dinamik olarak ayarla
+    });
+  }, [navigation, t]);
 
   const handleAddNote = async () => {
     const newNote = {
