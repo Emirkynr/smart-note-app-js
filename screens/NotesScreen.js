@@ -1,13 +1,15 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, FlatList, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, FlatList, StyleSheet, Alert } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { useFocusEffect } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { loadNotes, saveNote } from '../storage/NotesStorage';
 
 export default function NotesScreen({ navigation }) {
   const [notes, setNotes] = useState([]);
+  const [editMode, setEditMode] = useState(false);
+  const [selectedNotes, setSelectedNotes] = useState([]);
 
-  // Sayfa her odaklandığında notları yeniden yükle
   useFocusEffect(
     React.useCallback(() => {
       const fetchNotes = async () => {
@@ -19,31 +21,154 @@ export default function NotesScreen({ navigation }) {
     }, [])
   );
 
-  // NoteDetailScreen'den geri dönüldüğünde notları güncelle
   useEffect(() => {
-    const unsubscribe = navigation.addListener('focus', async () => {
-      const loadedNotes = await loadNotes();
-      setNotes(loadedNotes);
+    navigation.setOptions({
+      headerRight: () => (
+        editMode && (
+          <TouchableOpacity onPress={() => {
+            const allPinned = selectedNotes.every((id) => notes.find((note) => note.id === id)?.isPinned);
+            Alert.alert(
+              'Seçenekler',
+              '',
+              [
+                {
+                  text: allPinned ? 'Unpin' : 'Pin',
+                  onPress: allPinned ? handleUnpin : handlePin,
+                },
+                {
+                  text: 'Delete',
+                  style: 'destructive',
+                  onPress: handleDelete,
+                },
+                { text: 'Cancel', style: 'cancel' },
+              ]
+            );
+          }}>
+            <Icon name="ellipsis-vertical" size={24} color="black" />
+          </TouchableOpacity>
+        )
+      ),
+    });
+  }, [editMode, selectedNotes, notes]);
+
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('beforeRemove', (e) => {
+      if (editMode) {
+        e.preventDefault(); // Geri gitmeyi engelle
+        setEditMode(false); // Edit mode'u kapat
+        setSelectedNotes([]); // Seçili notları temizle
+      }
     });
 
-    return unsubscribe; // Dinleyiciyi kaldır
-  }, [navigation]);
+    return unsubscribe;
+  }, [navigation, editMode]);
 
   const handleAddNote = async () => {
     const newNote = {
       id: Date.now().toString(),
       title: 'Yeni Not',
       content: '',
+      isPinned: false,
     };
     await saveNote(newNote);
     setNotes((prevNotes) => [...prevNotes, newNote]);
   };
 
+  const handleLongPress = (noteId) => {
+    setEditMode(true);
+    setSelectedNotes([noteId]);
+  };
+
+  const handleCheckboxPress = (noteId) => {
+    if (selectedNotes.includes(noteId)) {
+      const updatedSelectedNotes = selectedNotes.filter((id) => id !== noteId);
+      setSelectedNotes(updatedSelectedNotes);
+      if (updatedSelectedNotes.length === 0) {
+        setEditMode(false); // Seçili not kalmadığında edit mode'u kapat
+      }
+    } else {
+      setSelectedNotes((prev) => [...prev, noteId]);
+    }
+  };
+
+  const handleDelete = () => {
+    Alert.alert(
+      `${selectedNotes.length} not silinecek`,
+      'Emin misiniz?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            const remainingNotes = notes.filter((note) => !selectedNotes.includes(note.id));
+            setNotes(remainingNotes);
+            setSelectedNotes([]);
+            setEditMode(false);
+            await AsyncStorage.setItem('notes', JSON.stringify(remainingNotes)); // Kalıcı olarak sil
+          },
+        },
+      ]
+    );
+  };
+
+  const handlePin = async () => {
+    const updatedNotes = notes.map((note) =>
+      selectedNotes.includes(note.id)
+        ? { ...note, isPinned: true }
+        : note
+    );
+
+    const pinnedNotes = updatedNotes.filter((note) => note.isPinned);
+    const unpinnedNotes = updatedNotes.filter((note) => !note.isPinned);
+
+    setNotes([...pinnedNotes, ...unpinnedNotes]);
+    setSelectedNotes([]);
+    setEditMode(false);
+
+    await AsyncStorage.setItem('notes', JSON.stringify([...pinnedNotes, ...unpinnedNotes]));
+  };
+
+  const handleUnpin = async () => {
+    const updatedNotes = notes.map((note) =>
+      selectedNotes.includes(note.id)
+        ? { ...note, isPinned: false }
+        : note
+    );
+
+    const pinnedNotes = updatedNotes.filter((note) => note.isPinned);
+    const unpinnedNotes = updatedNotes.filter((note) => !note.isPinned);
+
+    setNotes([...pinnedNotes, ...unpinnedNotes]);
+    setSelectedNotes([]);
+    setEditMode(false);
+
+    await AsyncStorage.setItem('notes', JSON.stringify([...pinnedNotes, ...unpinnedNotes]));
+  };
+
   const renderNote = ({ item }) => (
     <TouchableOpacity
       style={styles.noteItem}
-      onPress={() => navigation.navigate('NoteDetail', { note: item })}
+      onLongPress={() => handleLongPress(item.id)}
+      onPress={() => {
+        if (editMode) {
+          handleCheckboxPress(item.id);
+        } else {
+          navigation.navigate('NoteDetail', { note: item });
+        }
+      }}
     >
+      {editMode && (
+        <Icon
+          name={selectedNotes.includes(item.id) ? 'checkbox' : 'square-outline'}
+          size={24}
+          color="black"
+          style={styles.checkbox}
+        />
+      )}
+      {!editMode && item.isPinned && (
+        <Icon name="pin" size={24} color="black" style={styles.pinIcon} />
+      )}
       <Text style={styles.noteTitle}>{item.title}</Text>
     </TouchableOpacity>
   );
@@ -65,11 +190,14 @@ export default function NotesScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 16 },
   noteItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
     padding: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#ccc',
   },
-  noteTitle: { fontSize: 18 },
+  noteTitle: { fontSize: 18, marginLeft: 8 },
+  checkbox: { marginRight: 8 },
   addButton: {
     position: 'absolute',
     bottom: 30,
@@ -81,4 +209,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  pinIcon: { marginRight: 8 },
 });
