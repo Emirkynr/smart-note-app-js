@@ -4,6 +4,7 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import { useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { loadNotes, saveNote } from '../storage/NotesStorage';
+import { BackHandler } from 'react-native';
 
 export default function NotesScreen({ navigation }) {
   const [notes, setNotes] = useState([]);
@@ -21,6 +22,23 @@ export default function NotesScreen({ navigation }) {
     }, [])
   );
 
+  useEffect(() => {
+    const onBackPress = () => {
+      if (editMode) {
+        setEditMode(false);
+        setSelectedNotes([]);
+        return true; // geri işlemini durdur
+      }
+      return false; // varsayılan geri işlemine izin ver
+    };
+  
+    BackHandler.addEventListener('hardwareBackPress', onBackPress);
+  
+    return () => {
+      BackHandler.removeEventListener('hardwareBackPress', onBackPress);
+    };
+  }, [editMode]);
+  
   useEffect(() => {
     navigation.setOptions({
       headerRight: () => (
