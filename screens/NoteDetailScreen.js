@@ -17,7 +17,7 @@ export default function NoteDetailScreen({ route, navigation }) {
         await saveNote(currentNote);
         setOriginalNote(currentNote);
       }
-    }, 5000);
+    }, 10);
 
     return () => clearInterval(interval); // Bileşen unmount olduğunda interval'i temizle
   }, [currentNote, originalNote]);
