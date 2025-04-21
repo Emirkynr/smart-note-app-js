@@ -29,9 +29,9 @@ export default function NotesScreen({ navigation }) {
       if (editMode) {
         setEditMode(false);
         setSelectedNotes([]);
-        return true; // geri işlemini durdur
+        return true;
       }
-      return false; // varsayılan geri işlemine izin ver
+      return false;
     };
   
     BackHandler.addEventListener('hardwareBackPress', onBackPress);
@@ -74,9 +74,9 @@ export default function NotesScreen({ navigation }) {
   useEffect(() => {
     const unsubscribe = navigation.addListener('beforeRemove', (e) => {
       if (editMode) {
-        e.preventDefault(); // Geri gitmeyi engelle
-        setEditMode(false); // Edit mode'u kapat
-        setSelectedNotes([]); // Seçili notları temizle
+        e.preventDefault();
+        setEditMode(false); 
+        setSelectedNotes([]); 
       }
     });
 
@@ -85,7 +85,7 @@ export default function NotesScreen({ navigation }) {
 
   useEffect(() => {
     navigation.setOptions({
-      title: t('NotesPageName'), // Header başlığını dinamik olarak ayarla
+      title: t('NotesPageName'), 
     });
   }, [navigation, t]);
 
@@ -110,7 +110,7 @@ export default function NotesScreen({ navigation }) {
       const updatedSelectedNotes = selectedNotes.filter((id) => id !== noteId);
       setSelectedNotes(updatedSelectedNotes);
       if (updatedSelectedNotes.length === 0) {
-        setEditMode(false); // Seçili not kalmadığında edit mode'u kapat
+        setEditMode(false);
       }
     } else {
       setSelectedNotes((prev) => [...prev, noteId]);

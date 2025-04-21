@@ -2,21 +2,18 @@ import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import Icon from 'react-native-vector-icons/Ionicons'; // İkonlar için import
+import Icon from 'react-native-vector-icons/Ionicons'; 
 
-// Sayfa bileşenlerini import et
 import HomeScreen from './screens/HomeScreen';
 import NotesScreen from './screens/NotesScreen';
 import SettingsScreen from './screens/SettingsScreen';
 import NoteDetailScreen from './screens/NoteDetailScreen';
 
-// TranslationProvider'ı import et
 import { TranslationProvider } from './locales/TranslationProvider';
 
 const Tab = createBottomTabNavigator();
-const Stack = createNativeStackNavigator(); // Stack navigasyonu oluşturuyoruz
+const Stack = createNativeStackNavigator(); 
 
-// Notes ekranı için Stack yapısını kuruyoruz
 function NotesStack() {
   return (
     <Stack.Navigator>
@@ -36,18 +33,18 @@ export default function App() {
               let iconName;
 
               if (route.name === 'Home') {
-                iconName = 'home'; // Ev ikonu
+                iconName = 'home'; 
               } else if (route.name === 'Notes') {
-                iconName = 'book'; // Defter/Sayfa ikonu
+                iconName = 'book'; 
               } else if (route.name === 'Settings') {
-                iconName = 'settings'; // Ayarlar dişlisi
+                iconName = 'settings'; 
               }
 
               return <Icon name={iconName} size={size} color={color} />;
             },
-            tabBarShowLabel: false, // İsimleri kaldır
-            tabBarActiveTintColor: 'blue', // Aktif ikon rengi
-            tabBarInactiveTintColor: 'gray', // Pasif ikon rengi
+            tabBarShowLabel: false, 
+            tabBarActiveTintColor: 'blue', 
+            tabBarInactiveTintColor: 'gray', 
           })}
         >
           <Tab.Screen name="Home" component={HomeScreen} />

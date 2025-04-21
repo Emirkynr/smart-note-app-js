@@ -7,7 +7,7 @@ export default function SettingsScreen({ navigation }) {
 
   useEffect(() => {
     navigation.setOptions({
-      title: t('settingsPageName'), // Header başlığını dinamik olarak ayarla
+      title: t('settingsPageName'), 
     });
   }, [navigation, t]);
 

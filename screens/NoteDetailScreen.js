@@ -7,7 +7,6 @@ export default function NoteDetailScreen({ route, navigation }) {
   const [currentNote, setCurrentNote] = useState(note);
   const [originalNote, setOriginalNote] = useState(note);
 
-  // Her 5 saniyede bir değişiklikleri kaydet
   useEffect(() => {
     const interval = setInterval(async () => {
       if (
@@ -19,10 +18,10 @@ export default function NoteDetailScreen({ route, navigation }) {
       }
     }, 10);
 
-    return () => clearInterval(interval); // Bileşen unmount olduğunda interval'i temizle
+    return () => clearInterval(interval); 
   }, [currentNote, originalNote]);
 
-  // Geri gidildiğinde değişiklikleri kaydet
+ 
   useEffect(() => {
     const unsubscribe = navigation.addListener('beforeRemove', async () => {
       if (
@@ -33,7 +32,7 @@ export default function NoteDetailScreen({ route, navigation }) {
       }
     });
 
-    return unsubscribe; // Bileşen unmount olduğunda dinleyiciyi kaldır
+    return unsubscribe; 
   }, [navigation, currentNote, originalNote]);
 
   const handleTitleChange = (text) => {

@@ -7,7 +7,7 @@ export default function HomeScreen({ navigation }) {
 
   useEffect(() => {
     navigation.setOptions({
-      title: t('homePageName'), // Header başlığını dinamik olarak ayarla
+      title: t('homePageName'), 
     });
   }, [navigation, t]);
 
