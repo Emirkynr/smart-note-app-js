@@ -44,7 +44,8 @@ export default function App() {
             },
             tabBarShowLabel: false, 
             tabBarActiveTintColor: 'blue', 
-            tabBarInactiveTintColor: 'gray', 
+            tabBarInactiveTintColor: 'gray',
+            tabBarStyle: { height: 45 } 
           })}
         >
           <Tab.Screen name="Home" component={HomeScreen} />
