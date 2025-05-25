@@ -13,6 +13,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { loadNotes, saveNote } from "../storage/NotesStorage";
 import { BackHandler } from "react-native";
 import { useTranslation } from "../locales/TranslationProvider";
+import DraggableFlatList from "react-native-draggable-flatlist";
 
 export default function NotesScreen({ navigation }) {
   const { t } = useTranslation();
@@ -178,40 +179,77 @@ export default function NotesScreen({ navigation }) {
     );
   };
 
-  const renderNote = ({ item }) => (
-    <TouchableOpacity
-      style={styles.noteItem}
-      onLongPress={() => handleLongPress(item.id)}
-      onPress={() => {
-        if (editMode) {
-          handleCheckboxPress(item.id);
-        } else {
-          navigation.navigate("NoteDetail", { note: item });
-        }
-      }}
-    >
-      {editMode && (
-        <Icon
-          name={selectedNotes.includes(item.id) ? "checkbox" : "square-outline"}
-          size={24}
-          color="black"
-          style={styles.checkbox}
-        />
-      )}
-      {!editMode && item.isPinned && (
-        <Icon name="pin" size={24} color="black" style={styles.pinIcon} />
-      )}
-      <Text style={styles.noteTitle}>{item.title}</Text>
-    </TouchableOpacity>
-  );
+  const renderNote = ({ item, drag, isActive }) => {
+    // Uzun basınca sürükleme başlatmak için zamanlayıcı
+    let longPressTimeout = null;
+  
+    return (
+      <TouchableOpacity
+        style={[
+          styles.noteItem,
+          isActive && { opacity: 0.7 },
+        ]}
+        activeOpacity={0.8}
+        onPressIn={() => {
+          if (editMode) {
+            longPressTimeout = setTimeout(() => {
+              drag();
+              longPressTimeout = null;
+            }, 1000); // 1 saniye basınca sürükleme başlasın
+          }
+        }}
+        onPressOut={() => {
+          if (editMode && longPressTimeout) {
+            clearTimeout(longPressTimeout);
+            longPressTimeout = null;
+          }
+        }}
+        onPress={() => {
+          if (editMode) {
+            // Sadece kısa basışta seçim yap
+            handleCheckboxPress(item.id);
+          } else {
+            navigation.navigate("NoteDetail", { note: item });
+          }
+        }}
+        delayLongPress={1000}
+      >
+        {editMode && (
+          <Icon
+            name={selectedNotes.includes(item.id) ? "checkbox" : "square-outline"}
+            size={24}
+            color="black"
+            style={styles.checkbox}
+          />
+        )}
+        {!editMode && item.isPinned && (
+          <Icon name="pin" size={24} color="black" style={styles.pinIcon} />
+        )}
+        <Text style={styles.noteTitle}>{item.title}</Text>
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <View style={styles.container}>
-      <FlatList
-        data={notes}
-        keyExtractor={(item) => item.id}
-        renderItem={renderNote}
-      />
+      {editMode ? (
+        <DraggableFlatList
+          data={notes}
+          keyExtractor={(item) => item.id}
+          renderItem={renderNote}
+          numColumns={2}
+          contentContainerStyle={{ paddingBottom: 100 }}
+          onDragEnd={({ data }) => setNotes(data)}
+        />
+      ) : (
+        <FlatList
+          data={notes}
+          keyExtractor={(item) => item.id}
+          renderItem={renderNote}
+          numColumns={2} // <-- 2 sütunlu grid
+          contentContainerStyle={{ paddingBottom: 100 }}
+        />
+      )}
       <TouchableOpacity style={styles.addButton} onPress={handleAddNote}>
         <Icon name="add" size={30} color="white" />
       </TouchableOpacity>
@@ -220,15 +258,21 @@ export default function NotesScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16 },
+  container: { flex: 1, padding: 8 },
   noteItem: {
+    width: "48%", // Her satırda iki not olacak şekilde genişlik
+    aspectRatio: 1, // Yükseklik = genişlik
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "top",
     padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: "#ccc",
+    margin: 4,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#ccc",
+    backgroundColor: "#fff",
+    alignSelf: "flex-start", // Tek kalan notun genişlemesini engeller
   },
-  noteTitle: { fontSize: 18, marginLeft: 8 },
+  noteTitle: { fontSize: 18, marginLeft: 8, flexShrink: 1, marginTop: 15, fontWeight: "bold"},
   checkbox: { marginRight: 8 },
   addButton: {
     position: "absolute",
@@ -240,6 +284,7 @@ const styles = StyleSheet.create({
     borderRadius: 30,
     alignItems: "center",
     justifyContent: "center",
+    elevation: 4,
   },
   pinIcon: { marginRight: 8 },
 });

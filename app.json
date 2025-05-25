@@ -25,7 +25,10 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "plugins": ["expo-localization"],
+    "plugins": [
+      "expo-localization",
+      "react-native-reanimated/plugin"
+    ],
     "extra": {
       "eas": {
         "projectId": "489f7707-522d-4c42-8085-de01d0ad8a5e"
