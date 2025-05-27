@@ -17,6 +17,8 @@ import Icon from "react-native-vector-icons/Ionicons";
 import { useTranslation } from "../locales/TranslationProvider";
 import { saveNote, loadNotes } from "../storage/NotesStorage";
 import { OPENAI_API_KEY, OCR_API_KEY } from "@env";
+import AiQuizBox from "../components/AiQuizBox";
+import getAiQuiz from "../utils/getAiQuiz";
 
 export default function NoteDetailScreen({ route, navigation }) {
   const { note, noteId } = route.params || {};
@@ -114,11 +116,26 @@ export default function NoteDetailScreen({ route, navigation }) {
     setCurrentNote((prev) => ({ ...prev, title: text }));
   };
 
+  const [noteContent, setNoteContent] = useState("");
+
+  // Not açıldığında, ana içeriği ayrı state'e ata
+  useEffect(() => {
+    if (currentNote) {
+      let content = currentNote.content || "";
+      content = content.replace(/<AISUMMARY>[\s\S]*?<\/AISUMMARY>/, "");
+      content = content.replace(/<AIQUIZ>[\s\S]*?<\/AIQUIZ>/, "");
+      setNoteContent(content);
+      // ...aiSummary ve aiQuiz ayıklama kodun burada kalabilir...
+    }
+  }, [currentNote]);
+
+  // TextInput değişikliğinde sadece ana içeriği güncelle
   const handleContentChange = (text) => {
+    setNoteContent(text);
     // AI özet ve quiz'i tekrar ekle
-    let newContent = text.trim();
+    let newContent = text;
     if (aiSummary) newContent += `\n\n<AISUMMARY>\n${aiSummary}\n</AISUMMARY>`;
-    if (aiQuiz) newContent += `\n\n<AIQUIZ>\n${aiQuiz}\n</AIQUIZ>`;
+    if (aiQuiz && aiQuiz.length > 0) newContent += `\n\n<AIQUIZ>\n${JSON.stringify(aiQuiz)}\n</AIQUIZ>`;
     setCurrentNote((prev) => ({ ...prev, content: newContent }));
   };
 
@@ -139,7 +156,7 @@ export default function NoteDetailScreen({ route, navigation }) {
       body: JSON.stringify({
         model: "gpt-3.5-turbo",
         messages: [{ role: "user", content: prompt }],
-        max_tokens: 200,
+        max_tokens: 1000, // <-- artırıldı
         temperature: 0.7,
       }),
     });
@@ -147,37 +164,28 @@ export default function NoteDetailScreen({ route, navigation }) {
     return data.choices?.[0]?.message?.content?.trim() || "";
   }
 
-  async function getAiQuiz(text) {
-    const prompt = `Aşağıdaki notun içeriğine göre 3 adet kısa bilgi yarışması (quiz) sorusu ve cevapları üret:\n\n${text}`;
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${OPENAI_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: "gpt-3.5-turbo",
-        messages: [{ role: "user", content: prompt }],
-        max_tokens: 300,
-        temperature: 0.7,
-      }),
-    });
-    const data = await response.json();
-    return data.choices?.[0]?.message?.content?.trim() || "";
-  }
+  // AI quiz için ayrı bir fonksiyon dosyası kullanılıyor
+  // const getAiQuiz = async (text) => { ... }
 
   // AI özet ve quiz ayrı tutulacak
   const [aiSummary, setAiSummary] = useState("");
-  const [aiQuiz, setAiQuiz] = useState("");
+  const [aiQuiz, setAiQuiz] = useState([]);
 
   // Not açıldığında, varsa eski özet/quiz'i ayıkla
   useEffect(() => {
     if (currentNote) {
-      // AI özet ve quiz'i not içeriğinden ayıkla
       const summaryMatch = currentNote.content.match(/<AISUMMARY>([\s\S]*?)<\/AISUMMARY>/);
       const quizMatch = currentNote.content.match(/<AIQUIZ>([\s\S]*?)<\/AIQUIZ>/);
       setAiSummary(summaryMatch ? summaryMatch[1].trim() : "");
-      setAiQuiz(quizMatch ? quizMatch[1].trim() : "");
+      let quizArr = [];
+      if (quizMatch) {
+        try {
+          quizArr = JSON.parse(quizMatch[1].trim());
+        } catch (e) {
+          quizArr = [];
+        }
+      }
+      setAiQuiz(quizArr);
     }
   }, [currentNote]);
 
@@ -198,7 +206,7 @@ export default function NoteDetailScreen({ route, navigation }) {
       setAiSummary(summary);
       // Notun içeriğini güncelle (özet ve quiz'i güncel şekilde ekle)
       let newContent = mainContent;
-      if (aiQuiz) newContent += `\n\n<AIQUIZ>\n${aiQuiz}\n</AIQUIZ>`;
+      if (aiQuiz.length > 0) newContent += `\n\n<AIQUIZ>\n${JSON.stringify(aiQuiz)}\n</AIQUIZ>`;
       newContent += `\n\n<AISUMMARY>\n${summary}\n</AISUMMARY>`;
       setCurrentNote((prev) => ({ ...prev, content: newContent }));
     } catch (e) {
@@ -211,12 +219,12 @@ export default function NoteDetailScreen({ route, navigation }) {
     const mainContent = getMainContent();
     if (!mainContent) return;
     try {
-      const quiz = await getAiQuiz(mainContent);
-      setAiQuiz(quiz);
-      // Notun içeriğini güncelle (özet ve quiz'i güncel şekilde ekle)
+      const quizArr = await getAiQuiz(mainContent);
+      setAiQuiz(quizArr);
+      // Notun içeriğini güncellemek istiyorsan:
       let newContent = mainContent;
       if (aiSummary) newContent += `\n\n<AISUMMARY>\n${aiSummary}\n</AISUMMARY>`;
-      newContent += `\n\n<AIQUIZ>\n${quiz}\n</AIQUIZ>`;
+      newContent += `\n\n<AIQUIZ>\n${JSON.stringify(quizArr)}\n</AIQUIZ>`;
       setCurrentNote((prev) => ({ ...prev, content: newContent }));
     } catch (e) {
       Alert.alert("AI Hatası", "Quiz alınamadı.");
@@ -236,7 +244,7 @@ export default function NoteDetailScreen({ route, navigation }) {
         <ScrollView style={{ flex: 1 }}>
           <TextInput
             style={styles.contentInput}
-            value={getMainContent()}
+            value={noteContent}
             onChangeText={handleContentChange}
             placeholder="İçerik"
             multiline
@@ -254,12 +262,7 @@ export default function NoteDetailScreen({ route, navigation }) {
           ) : null}
 
           {/* AI Quiz kutusu */}
-          {aiQuiz ? (
-            <View style={styles.aiBox}>
-              <Text style={styles.aiBoxTitle}>AI Quiz</Text>
-              <Text style={styles.aiBoxContent}>{aiQuiz}</Text>
-            </View>
-          ) : null}
+          {aiQuiz && aiQuiz.length > 0 && <AiQuizBox quizData={aiQuiz} />}
         </ScrollView>
 
         <TouchableOpacity style={styles.aiButton} onPress={toggleDropbox}>
