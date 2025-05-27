@@ -9,8 +9,11 @@ import NotesScreen from "./screens/NotesScreen";
 import SettingsScreen from "./screens/SettingsScreen";
 import NoteDetailScreen from "./screens/NoteDetailScreen";
 import CameraScreen from "./screens/CameraScreen";
+import { enableScreens } from 'react-native-screens';
 
 import { TranslationProvider } from "./locales/TranslationProvider";
+
+enableScreens();
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -62,3 +65,5 @@ export default function App() {
     </TranslationProvider>
   );
 }
+
+

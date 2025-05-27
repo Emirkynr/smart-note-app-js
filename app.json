@@ -13,7 +13,8 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.emirkynr.SmartNoteApp"
     },
     "android": {
       "adaptiveIcon": {
@@ -26,14 +27,12 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-localization",
-      "react-native-reanimated/plugin"
+      "expo-localization"
     ],
     "extra": {
       "eas": {
         "projectId": "489f7707-522d-4c42-8085-de01d0ad8a5e"
       }
-    },
-    "entryPoint": "./App.js"
+    }
   }
 }
