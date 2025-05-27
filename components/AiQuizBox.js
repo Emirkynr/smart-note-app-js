@@ -1,7 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useContext } from "react";
 import { View, Text, Pressable, StyleSheet } from "react-native";
+import themes from "../themes";
+import { ThemeContext } from "../contexts/ThemeContext";
 
 export default function AiQuizBox({ quizData }) {
+  const { theme } = useContext(ThemeContext);
+  const colors = themes[theme];
   const [answers, setAnswers] = useState({});
   const [results, setResults] = useState({});
   const [expanded, setExpanded] = useState({});
@@ -23,8 +27,10 @@ export default function AiQuizBox({ quizData }) {
   };
 
   return (
-    <View style={styles.aiBox} pointerEvents="box-none">
-      <Text style={styles.aiBoxTitle} pointerEvents="none">AI Quiz</Text>
+    <View style={[
+      styles.aiBox,
+      { backgroundColor: colors.aiBoxBg, borderColor: colors.aiBoxBorder }
+    ]} pointerEvents="box-none">
       <View>
         {quizData.map((q, idx) => {
           const userAnswer = answers[idx];
@@ -35,15 +41,17 @@ export default function AiQuizBox({ quizData }) {
               key={idx}
               style={[
                 styles.quizQuestionBox,
+                { backgroundColor: colors.aiBoxBg },
                 userAnswer !== undefined
                   ? isCorrect
-                    ? styles.quizCorrect
-                    : styles.quizWrong
+                    ? { backgroundColor: colors.aiQuizCorrect }
+                    : { backgroundColor: colors.aiQuizWrong }
                   : null,
+                { borderWidth: 0 }
               ]}
             >
               <Pressable onPress={() => toggleExpand(idx)}>
-                <Text style={styles.quizQuestion}>
+                <Text style={[styles.quizQuestion, { color: colors.aiQuizQuestionText }]}>
                   {idx + 1}. {q.question}{" "}
                   <Text style={{ fontSize: 14 }}>
                     {isExpanded ? "▲" : "▼"}
@@ -58,39 +66,47 @@ export default function AiQuizBox({ quizData }) {
                       !isCorrect &&
                       choice === q.answer;
 
-                    // Cevaplanmışsa: dummy Pressable (scroll için)
+                    // Cevaplanmışsa:
                     if (userAnswer !== undefined) {
                       return (
                         <Pressable
                           key={cidx}
                           style={[
                             styles.quizChoice,
+                            {
+                              backgroundColor: colors.aiQuizChoice,
+                              borderColor: colors.aiQuizChoiceBorder,
+                            },
                             userAnswer === choice
                               ? isCorrect
-                                ? styles.quizSelectedCorrect
-                                : styles.quizSelectedWrong
+                                ? { backgroundColor: colors.aiQuizCorrect }
+                                : { backgroundColor: colors.aiQuizWrong }
                               : showCorrect
-                              ? styles.quizShowCorrect
+                              ? { backgroundColor: colors.aiQuizCorrect }
                               : null,
                           ]}
-                          onPress={() => {}} // dummy, tıklama yok
+                          onPress={() => {}}
                         >
-                          <Text style={styles.quizChoiceText}>{choice}</Text>
+                          <Text style={[styles.quizChoiceText, { color: colors.aiBoxContent }]}>{choice}</Text>
                         </Pressable>
                       );
                     }
 
-                    // Cevaplanmamışsa Pressable olarak bırak
+                    // Cevaplanmamışsa:
                     return (
                       <Pressable
                         key={cidx}
                         style={[
                           styles.quizChoice,
-                          userAnswer === choice ? styles.quizSelectedWrong : null,
+                          {
+                            backgroundColor: colors.aiQuizChoice,
+                            borderColor: colors.aiQuizChoiceBorder,
+                          },
+                          userAnswer === choice ? { backgroundColor: colors.aiQuizWrong } : null,
                         ]}
-                        onPress={() => handlePress(idx, choice, q.answer)}
+                        onPress={() => userAnswer === undefined ? handlePress(idx, choice, q.answer) : undefined}
                       >
-                        <Text style={styles.quizChoiceText}>{choice}</Text>
+                        <Text style={[styles.quizChoiceText, { color: colors.aiBoxContent }]}>{choice}</Text>
                       </Pressable>
                     );
                   })}
@@ -125,6 +141,7 @@ const styles = StyleSheet.create({
     padding: 10,
     borderRadius: 8,
     backgroundColor: "#f5f5f5",
+    borderWidth: 0,
   },
   quizCorrect: {
     backgroundColor: "#a5d6a7",

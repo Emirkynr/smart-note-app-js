@@ -190,7 +190,7 @@ export default function NotesScreen({ navigation }) {
       style={[
         styles.noteItem,
         {
-          backgroundColor: colors.noteBg,
+          backgroundColor: colors.noteBg, // Çerçeve ile aynı renk
           borderColor: colors.noteBorder,
         },
         editMode && selectedNotes.includes(item.id) && {
@@ -244,16 +244,15 @@ export default function NotesScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 8 },
   noteItem: {
-    width: "48%", // Her satırda iki not olacak şekilde genişlik
-    aspectRatio: 1, // Yükseklik = genişlik
+    width: "48%",
+    aspectRatio: 1,
     flexDirection: "row",
     alignItems: "top",
     padding: 16,
     margin: 4,
     borderRadius: 10,
     borderWidth: 1,
-    backgroundColor: "#fff",
-    alignSelf: "flex-start", // Tek kalan notun genişlemesini engeller
+    alignSelf: "flex-start",
   },
   noteTitle: { fontSize: 18, marginLeft: 8, flexShrink: 1, marginTop: 15, fontWeight: "bold"},
   checkbox: { marginRight: 8 },

@@ -43,9 +43,7 @@ export default function SettingsScreen({ navigation }) {
     navigation.setOptions({ title: t('settingsPageName') });
   }, [navigation, t]);
 
-  // Ekran genişliğini al
-  const screenPadding = 20; // styles.container'daki padding
-  // const dropdownWidth = `100%`; // Tam genişlik, padding ile sınırlandırılacak
+  const screenPadding = 20;
 
   return (
     <PaperProvider>
@@ -153,6 +151,6 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     borderWidth: 1,
     borderRadius: 4,
-    alignSelf: 'stretch', // Tam genişlik
+    alignSelf: 'stretch',
   },
 });

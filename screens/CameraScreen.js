@@ -66,7 +66,6 @@ export default function CameraScreen({ route, navigation }) {
 
       setText(detectedText);
 
-      // OCR sonucunu NoteDetailScreen'e gönder
       navigation.navigate("NoteDetail", {
         noteId,
         ocrText: detectedText,

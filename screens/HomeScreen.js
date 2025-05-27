@@ -68,7 +68,7 @@ export default function HomeScreen({ navigation }) {
       style={[
         styles.noteItem,
         {
-          backgroundColor: colors.noteBg,
+          backgroundColor: colors.noteBorder, 
           borderColor: colors.noteBorder,
         },
       ]}
@@ -111,7 +111,7 @@ export default function HomeScreen({ navigation }) {
         </ScrollView>
       </View>
       <ScrollView style={styles.content} contentContainerStyle={{ flexGrow: 1 }}>
-        {/* Son Notlarım Bölümü */}
+
         <View style={styles.recentNotesSection}>
           <Text style={[styles.recentNotesTitle, { color: colors.text }]}>
             {t('recent_notes')}
@@ -123,7 +123,7 @@ export default function HomeScreen({ navigation }) {
             numColumns={2}
             contentContainerStyle={{ paddingBottom: 16 }}
             columnWrapperStyle={{ justifyContent: 'space-between' }}
-            scrollEnabled={false} // FlatList scroll'u kapalı, ScrollView ile birlikte
+            scrollEnabled={false} 
           />
         </View>
       </ScrollView>
@@ -154,17 +154,18 @@ const styles = StyleSheet.create({
   },
   noteItem: {
     width: "48%",
-    aspectRatio: 1,
+    aspectRatio: 1.5, // 3 birim en, 2 birim yükseklik
     borderRadius: 10,
     borderWidth: 1,
     marginBottom: 12,
     padding: 12,
-    backgroundColor: "#fff",
-    borderColor: "#ccc",
     justifyContent: "center",
+    alignItems: "center",
   },
   noteTitle: {
     fontSize: 16,
     fontWeight: "bold",
+    textAlign: "center", // Ortala
+    marginTop: 16, // Bir satır kadar yukarıda başlasın
   },
 });

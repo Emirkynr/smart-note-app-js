@@ -30,7 +30,6 @@ function NotesStack() {
   );
 }
 
-// Temaya göre NavigationContainer temasını seçen içerik bileşeni
 function AppNavigator() {
   const { theme } = useContext(ThemeContext);
   const { t } = useTranslation();
@@ -41,8 +40,8 @@ function AppNavigator() {
       ...DefaultTheme.colors,
       background: '#ffffff',
       text: '#000000',
-      card: '#f3f3f3', // Header/Footer için biraz daha koyu
-      border: '#cccccc', // Line için daha belirgin
+      card: '#f3f3f3',
+      border: '#cccccc', 
     },
   };
 
@@ -50,10 +49,10 @@ function AppNavigator() {
     ...DarkTheme,
     colors: {
       ...DarkTheme.colors,
-      background: theme === 'amoled_black' ? '#000000' : '#222326', // Gövde
+      background: theme === 'amoled_black' ? '#000000' : '#222326',
       text: '#ffffff',
-      card: theme === 'amoled_black' ? '#000000' : '#23242a', // Header/Footer için biraz daha koyu
-      border: theme === 'amoled_black' ? '#fff' : '#44485a', // Line: Amoled'de beyaz, diğerlerinde koyu gri
+      card: theme === 'amoled_black' ? '#000000' : '#23242a',
+      border: theme === 'amoled_black' ? '#fff' : '#666',
     },
   };
 
@@ -74,9 +73,9 @@ function AppNavigator() {
                 ? '#fff'
                 : theme === 'light'
                 ? '#cccccc'
-                : '#44485a',
-            elevation: 0, // Android için shadow kaldır
-            shadowOpacity: 0, // iOS için shadow kaldır
+                : '#666',
+            elevation: 0,
+            shadowOpacity: 0,
           },
           headerTintColor: theme === 'light' ? '#000000' : '#ffffff',
           tabBarStyle: {
@@ -92,7 +91,7 @@ function AppNavigator() {
                 ? '#fff'
                 : theme === 'light'
                 ? '#cccccc'
-                : '#44485a',
+                : '#666',
           },
           tabBarActiveTintColor: theme === 'light' ? 'blue' : 'lightblue',
           tabBarInactiveTintColor: theme === 'light' ? 'gray' : 'darkgray',
@@ -119,7 +118,6 @@ function AppNavigator() {
           }}
           listeners={({ navigation }) => ({
             tabPress: e => {
-              // Notlar tabına her basıldığında NotesScreen'e git
               navigation.navigate('Notes', { screen: 'Notes' });
             },
           })}

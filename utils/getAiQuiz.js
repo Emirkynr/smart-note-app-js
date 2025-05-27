@@ -2,13 +2,16 @@ import { OPENAI_API_KEY } from "@env";
 
 export default async function getAiQuiz(text) {
   const prompt = `
-Aşağıdaki notun içeriğine göre, sadece bu nottaki bilgilerden yararlanarak 3 adet çoktan seçmeli (4 şıklı) bilgi yarışması (quiz) sorusu üret. Her sorunun doğru cevabını ve 3 yanlış cevabını belirt. Sonucu aşağıdaki JSON formatında ver:
+Aşağıdaki notun içeriğine göre, sadece bu nottaki bilgilerden yararlanarak 3 adet çoktan seçmeli (4 şıklı) bilgi yarışması (quiz) sorusu üret. 
+Her soru, notun bilgisini gerçekten ölçen, kavramsal ve sınayıcı bir soru olsun. 
+Her şık başında "A)", "B)", "C)", "D)" harfleriyle gösterilsin. 
+Her sorunun doğru cevabını ve 3 yanlış cevabını belirt. Sonucu aşağıdaki JSON formatında ver:
 
 [
   {
     "question": "Soru metni",
-    "choices": ["A", "B", "C", "D"],
-    "answer": "A"
+    "choices": ["A) ...", "B) ...", "C) ...", "D) ..."],
+    "answer": "A) ..."
   },
   ...
 ]

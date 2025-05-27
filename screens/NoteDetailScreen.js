@@ -39,7 +39,10 @@ export default function NoteDetailScreen({ route, navigation }) {
   const MAX_HEIGHT = Dimensions.get("window").height * 0.25;
   const DROPBOX_HEIGHT = Math.min((ITEM_HEIGHT + 20) * 5, MAX_HEIGHT);
 
-  const ocrTextHandled = useRef(false); // Sonsuz döngü önleme
+  const ocrTextHandled = useRef(false); 
+  const scrollRef = useRef(null);
+
+  const [contentChanged, setContentChanged] = useState(false);
 
   const toggleDropbox = () => {
     if (isDropboxVisible) {
@@ -76,7 +79,7 @@ export default function NoteDetailScreen({ route, navigation }) {
         saveNote(currentNote);
         setOriginalNote(currentNote);
       }
-    }, 50); // 50 ms'ye çekildi
+    }, 50);
 
     return () => clearInterval(saveInterval);
   }, [currentNote, originalNote]);
@@ -87,7 +90,7 @@ export default function NoteDetailScreen({ route, navigation }) {
         route.params.ocrText
       }`;
       setCurrentNote((prev) => ({ ...prev, content: updatedContent }));
-      ocrTextHandled.current = true; // tekrar tetiklenmesin
+      ocrTextHandled.current = true;
     }
   }, [route.params?.ocrText, currentNote]);
 
@@ -108,7 +111,6 @@ export default function NoteDetailScreen({ route, navigation }) {
     }
   }, [note, noteId]);
 
-  // Not başlığını navigation başlığına ayarla
   useEffect(() => {
     navigation.setOptions({
       title: currentNote?.title || "",
@@ -132,14 +134,12 @@ export default function NoteDetailScreen({ route, navigation }) {
 
   const handleContentChange = (text) => {
     setNoteContent(text);
-    let newContent = text;
-    if (aiSummary) newContent += `\n\n<AISUMMARY>\n${aiSummary}\n</AISUMMARY>`;
-    if (aiQuiz && aiQuiz.length > 0) newContent += `\n\n<AIQUIZ>\n${JSON.stringify(aiQuiz)}\n</AIQUIZ>`;
     setCurrentNote((prev) => ({
       ...prev,
-      content: newContent,
-      latestChangeDate: new Date().toISOString(), // güncelle
+      content: text,
+      latestChangeDate: new Date().toISOString(),
     }));
+    setContentChanged(true);
   };
 
   const handleTitleChange = (text) => {
@@ -151,6 +151,7 @@ export default function NoteDetailScreen({ route, navigation }) {
   };
 
   const [noteContent, setNoteContent] = useState("");
+  const [inputHeight, setInputHeight] = useState(120);
 
   // Not açıldığında, ana içeriği ayrı state'e ata
   useEffect(() => {
@@ -159,7 +160,6 @@ export default function NoteDetailScreen({ route, navigation }) {
       content = content.replace(/<AISUMMARY>[\s\S]*?<\/AISUMMARY>/, "");
       content = content.replace(/<AIQUIZ>[\s\S]*?<\/AIQUIZ>/, "");
       setNoteContent(content);
-      // ...aiSummary ve aiQuiz ayıklama kodun burada kalabilir...
     }
   }, [currentNote]);
 
@@ -188,14 +188,10 @@ export default function NoteDetailScreen({ route, navigation }) {
     return data.choices?.[0]?.message?.content?.trim() || "";
   }
 
-  // AI quiz için ayrı bir fonksiyon dosyası kullanılıyor
-  // const getAiQuiz = async (text) => { ... }
 
-  // AI özet ve quiz ayrı tutulacak
   const [aiSummary, setAiSummary] = useState("");
   const [aiQuiz, setAiQuiz] = useState([]);
 
-  // Not açıldığında, varsa eski özet/quiz'i ayıkla
   useEffect(() => {
     if (currentNote) {
       const summaryMatch = currentNote.content.match(/<AISUMMARY>([\s\S]*?)<\/AISUMMARY>/);
@@ -211,7 +207,7 @@ export default function NoteDetailScreen({ route, navigation }) {
       }
       setAiQuiz(quizArr);
     }
-  }, [currentNote]);
+  }, [currentNote?.id]);
 
   // Notun ana içeriğini, AI özet ve quiz olmadan al
   const getMainContent = () => {
@@ -228,28 +224,34 @@ export default function NoteDetailScreen({ route, navigation }) {
     try {
       const summary = await getAiSummary(mainContent);
       setAiSummary(summary);
-      // Notun içeriğini güncelle (özet ve quiz'i güncel şekilde ekle)
+      // Notun içeriği güncelle
       let newContent = mainContent;
       if (aiQuiz.length > 0) newContent += `\n\n<AIQUIZ>\n${JSON.stringify(aiQuiz)}\n</AIQUIZ>`;
       newContent += `\n\n<AISUMMARY>\n${summary}\n</AISUMMARY>`;
       setCurrentNote((prev) => ({ ...prev, content: newContent }));
+      setContentChanged(false);
+      setTimeout(() => {
+        scrollRef.current?.scrollToEnd({ animated: true });
+      }, 300);
     } catch (e) {
       Alert.alert("AI Hatası", "Özet alınamadı.");
     }
   };
 
-  // AI quiz fonksiyonu
   const handleAiQuiz = async () => {
     const mainContent = getMainContent();
     if (!mainContent) return;
     try {
       const quizArr = await getAiQuiz(mainContent);
       setAiQuiz(quizArr);
-      // Notun içeriğini güncellemek istiyorsan:
       let newContent = mainContent;
       if (aiSummary) newContent += `\n\n<AISUMMARY>\n${aiSummary}\n</AISUMMARY>`;
       newContent += `\n\n<AIQUIZ>\n${JSON.stringify(quizArr)}\n</AIQUIZ>`;
       setCurrentNote((prev) => ({ ...prev, content: newContent }));
+      setContentChanged(false);
+      setTimeout(() => {
+        scrollRef.current?.scrollToEnd({ animated: true });
+      }, 300);
     } catch (e) {
       Alert.alert("AI Hatası", "Quiz alınamadı.");
     }
@@ -271,9 +273,12 @@ export default function NoteDetailScreen({ route, navigation }) {
           placeholder="Başlık"
           onFocus={closeDropbox}
         />
-        <ScrollView style={{ flex: 1 }}>
+        <ScrollView style={{ flex: 1 }} ref={scrollRef}>
           <TextInput
-            style={[styles.contentInput, { color: colors.text }]}
+            style={[
+              styles.contentInput,
+              { color: colors.text, height: inputHeight }
+            ]}
             value={noteContent}
             onChangeText={handleContentChange}
             placeholder="İçerik"
@@ -281,18 +286,92 @@ export default function NoteDetailScreen({ route, navigation }) {
             blurOnSubmit={false}
             returnKeyType="default"
             onFocus={closeDropbox}
+            onContentSizeChange={e =>
+              setInputHeight(Math.max(120, e.nativeEvent.contentSize.height))
+            }
           />
 
-          {/* AI Özet kutusu */}
           {aiSummary ? (
-            <View style={styles.aiBox}>
-              <Text style={[styles.aiBoxTitle, { color: colors.primary }]}>AI Özet</Text>
-              <Text style={[styles.aiBoxContent, { color: colors.text }]}>{aiSummary}</Text>
+            <View style={[
+              styles.aiBox,
+              {
+                backgroundColor: colors.aiBoxBg,
+                borderColor: colors.aiBoxBorder,
+              }
+            ]}>
+              <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+                <Text style={[styles.aiBoxTitle, { color: colors.aiBoxTitle }]}>AI Özet</Text>
+                <View style={{ flexDirection: "row", alignItems: "center" }}>
+                  <TouchableOpacity
+                    onPress={contentChanged ? handleAiSummary : undefined}
+                    disabled={!contentChanged}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  >
+                    <Icon
+                      name="refresh"
+                      size={18}
+                      color={contentChanged ? "#e57373" : "#bbb"}
+                      style={{ marginRight: 8, opacity: contentChanged ? 1 : 0.5 }}
+                    />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => setAiSummary("")}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  >
+                    <Icon name="close" size={18} color="#888" />
+                  </TouchableOpacity>
+                </View>
+              </View>
+              <ScrollView
+                style={{ maxHeight: 180 }}
+                nestedScrollEnabled={true}
+                showsVerticalScrollIndicator={true}
+                scrollEnabled={true}
+                pointerEvents="auto"
+              >
+                <View>
+                  <Text style={[styles.aiBoxContent, { color: colors.aiBoxContent }]}>
+                    {aiSummary}
+                  </Text>
+                </View>
+              </ScrollView>
             </View>
           ) : null}
 
-          {/* AI Quiz kutusu */}
-          {aiQuiz && aiQuiz.length > 0 && <AiQuizBox quizData={aiQuiz} />}
+          {aiQuiz && aiQuiz.length > 0 && (
+            <View style={[
+              styles.aiBox,
+              {
+                backgroundColor: colors.aiBoxBg,
+                borderColor: colors.aiBoxBorder,
+              }
+            ]}>
+              <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+                <Text style={[styles.aiBoxTitle, { color: colors.aiBoxTitle }]}>AI Quiz</Text>
+                <View style={{ flexDirection: "row", alignItems: "center" }}>
+                  <TouchableOpacity
+                    onPress={contentChanged ? handleAiQuiz : undefined}
+                    disabled={!contentChanged}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  >
+                    <Icon
+                      name="refresh"
+                      size={18}
+                      color={contentChanged ? "#e57373" : "#bbb"}
+                      style={{ marginRight: 8, opacity: contentChanged ? 1 : 0.5 }}
+                    />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => setAiQuiz([])}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  >
+                    <Icon name="close" size={18} color="#888" />
+                  </TouchableOpacity>
+                </View>
+              </View>
+              <AiQuizBox quizData={aiQuiz} />
+            </View>
+          )}
         </ScrollView>
 
         <TouchableOpacity style={styles.aiButton} onPress={toggleDropbox}>
@@ -314,17 +393,6 @@ export default function NoteDetailScreen({ route, navigation }) {
                 }}
               >
                 <Text style={styles.dropboxButtonText}>{t("scan_text")}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.dropboxButton, { height: ITEM_HEIGHT }]}
-                onPress={() => {
-                  // Sesli okuma fonksiyonu burada olacaksa ekle
-                  closeDropbox();
-                }}
-              >
-                <Text style={styles.dropboxButtonText}>
-                  {t("read_note_aloud")}
-                </Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.dropboxButton, { height: ITEM_HEIGHT }]}
