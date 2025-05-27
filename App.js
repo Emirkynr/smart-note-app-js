@@ -13,6 +13,7 @@ import CameraScreen from "./screens/CameraScreen";
 
 import { TranslationProvider } from "./locales/TranslationProvider";
 import { ThemeProvider, ThemeContext } from "./contexts/ThemeContext";
+import { useTranslation } from "./locales/TranslationProvider";
 
 enableScreens();
 
@@ -32,6 +33,7 @@ function NotesStack() {
 // Temaya göre NavigationContainer temasını seçen içerik bileşeni
 function AppNavigator() {
   const { theme } = useContext(ThemeContext);
+  const { t } = useTranslation();
 
   const lightTheme = {
     ...DefaultTheme,
@@ -39,8 +41,8 @@ function AppNavigator() {
       ...DefaultTheme.colors,
       background: '#ffffff',
       text: '#000000',
-      card: '#ffffff',
-      border: '#cccccc',
+      card: '#f3f3f3', // Header/Footer için biraz daha koyu
+      border: '#cccccc', // Line için daha belirgin
     },
   };
 
@@ -48,10 +50,10 @@ function AppNavigator() {
     ...DarkTheme,
     colors: {
       ...DarkTheme.colors,
-      background: theme === 'amoled_black' ? '#000000' : '#333333',
+      background: theme === 'amoled_black' ? '#000000' : '#222326', // Gövde
       text: '#ffffff',
-      card: '#000000',
-      border: '#444444',
+      card: theme === 'amoled_black' ? '#000000' : '#23242a', // Header/Footer için biraz daha koyu
+      border: theme === 'amoled_black' ? '#fff' : '#44485a', // Line: Amoled'de beyaz, diğerlerinde koyu gri
     },
   };
 
@@ -62,19 +64,35 @@ function AppNavigator() {
           headerStyle: {
             backgroundColor:
               theme === 'light'
-                ? '#ffffff'
+                ? '#f3f3f3'
                 : theme === 'amoled_black'
                 ? '#000000'
-                : '#333333',
+                : '#23242a',
+            borderBottomWidth: 1,
+            borderBottomColor:
+              theme === 'amoled_black'
+                ? '#fff'
+                : theme === 'light'
+                ? '#cccccc'
+                : '#44485a',
+            elevation: 0, // Android için shadow kaldır
+            shadowOpacity: 0, // iOS için shadow kaldır
           },
           headerTintColor: theme === 'light' ? '#000000' : '#ffffff',
           tabBarStyle: {
             backgroundColor:
               theme === 'light'
-                ? '#ffffff'
+                ? '#f3f3f3'
                 : theme === 'amoled_black'
                 ? '#000000'
-                : '#333333',
+                : '#23242a',
+            borderTopWidth: 1,
+            borderTopColor:
+              theme === 'amoled_black'
+                ? '#fff'
+                : theme === 'light'
+                ? '#cccccc'
+                : '#44485a',
           },
           tabBarActiveTintColor: theme === 'light' ? 'blue' : 'lightblue',
           tabBarInactiveTintColor: theme === 'light' ? 'gray' : 'darkgray',
@@ -87,13 +105,24 @@ function AppNavigator() {
           },
         })}
       >
-        <Tab.Screen name="Home" component={HomeScreen} />
+        <Tab.Screen
+          name="Home"
+          component={HomeScreen}
+          options={{ tabBarLabel: t('homePageName') }}
+        />
         <Tab.Screen
           name="Notes"
           component={NotesStack}
-          options={{ headerShown: false }}
+          options={{
+            headerShown: false,
+            tabBarLabel: t('NotesPageName'),
+          }}
         />
-        <Tab.Screen name="Settings" component={SettingsScreen} />
+        <Tab.Screen
+          name="Settings"
+          component={SettingsScreen}
+          options={{ tabBarLabel: t('settingsPageName') }}
+        />
       </Tab.Navigator>
     </NavigationContainer>
   );

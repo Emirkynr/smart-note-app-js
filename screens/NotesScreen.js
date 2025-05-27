@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -13,9 +13,13 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { loadNotes, saveNote } from "../storage/NotesStorage";
 import { BackHandler } from "react-native";
 import { useTranslation } from "../locales/TranslationProvider";
+import themes from "../themes";
+import { ThemeContext } from "../contexts/ThemeContext";
 
 export default function NotesScreen({ navigation }) {
   const { t } = useTranslation();
+  const { theme } = useContext(ThemeContext);
+  const colors = themes[theme];
   const [notes, setNotes] = useState([]);
   const [editMode, setEditMode] = useState(false);
   const [selectedNotes, setSelectedNotes] = useState([]);
@@ -71,11 +75,11 @@ export default function NotesScreen({ navigation }) {
               ]);
             }}
           >
-            <Icon name="ellipsis-vertical" size={24} color="black" />
+            <Icon name="ellipsis-vertical" size={24} color={colors.moreIcon} />
           </TouchableOpacity>
         ),
     });
-  }, [editMode, selectedNotes, notes]);
+  }, [editMode, selectedNotes, notes, colors.moreIcon]);
 
   useEffect(() => {
     const unsubscribe = navigation.addListener("beforeRemove", (e) => {
@@ -96,11 +100,13 @@ export default function NotesScreen({ navigation }) {
   }, [navigation, t]);
 
   const handleAddNote = async () => {
+    const now = new Date().toISOString();
     const newNote = {
       id: Date.now().toString(),
       title: "Yeni Not",
       content: "",
       isPinned: false,
+      latestChangeDate: now, // yeni alan
     };
     await saveNote(newNote);
     setNotes((prevNotes) => [...prevNotes, newNote]);
@@ -181,7 +187,16 @@ export default function NotesScreen({ navigation }) {
 
   const renderNote = ({ item }) => (
     <TouchableOpacity
-      style={styles.noteItem}
+      style={[
+        styles.noteItem,
+        {
+          backgroundColor: colors.noteBg,
+          borderColor: colors.noteBorder,
+        },
+        editMode && selectedNotes.includes(item.id) && {
+          backgroundColor: colors.notePressed,
+        },
+      ]}
       onLongPress={() => handleLongPress(item.id)}
       onPress={() => {
         if (editMode) {
@@ -190,24 +205,25 @@ export default function NotesScreen({ navigation }) {
           navigation.navigate("NoteDetail", { note: item });
         }
       }}
+      activeOpacity={0.8}
     >
       {editMode && (
         <Icon
           name={selectedNotes.includes(item.id) ? "checkbox" : "square-outline"}
           size={24}
-          color="black"
+          color={colors.text}
           style={styles.checkbox}
         />
       )}
       {!editMode && item.isPinned && (
-        <Icon name="pin" size={24} color="black" style={styles.pinIcon} />
+        <Icon name="pin" size={24} color={colors.text} style={styles.pinIcon} />
       )}
-      <Text style={styles.noteTitle}>{item.title}</Text>
+      <Text style={[styles.noteTitle, { color: colors.text }]}>{item.title}</Text>
     </TouchableOpacity>
   );
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <FlatList
         data={notes}
         keyExtractor={(item) => item.id}
@@ -215,8 +231,11 @@ export default function NotesScreen({ navigation }) {
         numColumns={2} // <-- 2 sütunlu grid
         contentContainerStyle={{ paddingBottom: 100 }}
       />
-      <TouchableOpacity style={styles.addButton} onPress={handleAddNote}>
-        <Icon name="add" size={30} color="white" />
+      <TouchableOpacity
+        style={[styles.addButton, { backgroundColor: colors.addButton }]}
+        onPress={handleAddNote}
+      >
+        <Icon name="add" size={30} color={colors.addButtonIcon} />
       </TouchableOpacity>
     </View>
   );
@@ -233,7 +252,6 @@ const styles = StyleSheet.create({
     margin: 4,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: "#ccc",
     backgroundColor: "#fff",
     alignSelf: "flex-start", // Tek kalan notun genişlemesini engeller
   },
@@ -243,7 +261,6 @@ const styles = StyleSheet.create({
     position: "absolute",
     bottom: 30,
     right: 30,
-    backgroundColor: "#007bff",
     width: 60,
     height: 60,
     borderRadius: 30,

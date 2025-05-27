@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useContext } from "react";
 import {
   View,
   TextInput,
@@ -19,6 +19,8 @@ import { saveNote, loadNotes } from "../storage/NotesStorage";
 import { OPENAI_API_KEY, OCR_API_KEY } from "@env";
 import AiQuizBox from "../components/AiQuizBox";
 import getAiQuiz from "../utils/getAiQuiz";
+import themes from "../themes";
+import { ThemeContext } from "../contexts/ThemeContext";
 
 export default function NoteDetailScreen({ route, navigation }) {
   const { note, noteId } = route.params || {};
@@ -30,6 +32,8 @@ export default function NoteDetailScreen({ route, navigation }) {
   )[0];
 
   const { t } = useTranslation();
+  const { theme } = useContext(ThemeContext);
+  const colors = themes[theme];
 
   const ITEM_HEIGHT = 60;
   const MAX_HEIGHT = Dimensions.get("window").height * 0.25;
@@ -103,6 +107,13 @@ export default function NoteDetailScreen({ route, navigation }) {
       })();
     }
   }, [note, noteId]);
+
+  // Not başlığını navigation başlığına ayarla
+  useEffect(() => {
+    if (currentNote?.title) {
+      navigation.setOptions({ title: currentNote.title });
+    }
+  }, [currentNote?.title, navigation]);
 
   if (!currentNote) {
     return (
@@ -231,11 +242,17 @@ export default function NoteDetailScreen({ route, navigation }) {
     }
   };
 
+  // Klavye açıldığında menüyü kapat
+  useEffect(() => {
+    const keyboardListener = Keyboard.addListener("keyboardDidShow", closeDropbox);
+    return () => keyboardListener.remove();
+  }, []);
+
   return (
     <TouchableWithoutFeedback onPress={closeDropbox}>
       <View style={styles.container}>
         <TextInput
-          style={styles.titleInput}
+          style={[styles.titleInput, { color: colors.text, borderBottomColor: colors.border }]}
           value={currentNote.title}
           onChangeText={handleTitleChange}
           placeholder="Başlık"
@@ -243,7 +260,7 @@ export default function NoteDetailScreen({ route, navigation }) {
         />
         <ScrollView style={{ flex: 1 }}>
           <TextInput
-            style={styles.contentInput}
+            style={[styles.contentInput, { color: colors.text }]}
             value={noteContent}
             onChangeText={handleContentChange}
             placeholder="İçerik"
@@ -256,8 +273,8 @@ export default function NoteDetailScreen({ route, navigation }) {
           {/* AI Özet kutusu */}
           {aiSummary ? (
             <View style={styles.aiBox}>
-              <Text style={styles.aiBoxTitle}>AI Özet</Text>
-              <Text style={styles.aiBoxContent}>{aiSummary}</Text>
+              <Text style={[styles.aiBoxTitle, { color: colors.primary }]}>AI Özet</Text>
+              <Text style={[styles.aiBoxContent, { color: colors.text }]}>{aiSummary}</Text>
             </View>
           ) : null}
 
@@ -278,19 +295,19 @@ export default function NoteDetailScreen({ route, navigation }) {
             >
               <TouchableOpacity
                 style={[styles.dropboxButton, { height: ITEM_HEIGHT }]}
-                onPress={handleScanText}
+                onPress={() => {
+                  handleScanText();
+                  closeDropbox();
+                }}
               >
                 <Text style={styles.dropboxButtonText}>{t("scan_text")}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.dropboxButton, { height: ITEM_HEIGHT }]}
-              >
-                <Text style={styles.dropboxButtonText}>
-                  {t("convert_audio_to_note")}
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.dropboxButton, { height: ITEM_HEIGHT }]}
+                onPress={() => {
+                  // Sesli okuma fonksiyonu burada olacaksa ekle
+                  closeDropbox();
+                }}
               >
                 <Text style={styles.dropboxButtonText}>
                   {t("read_note_aloud")}
@@ -298,7 +315,10 @@ export default function NoteDetailScreen({ route, navigation }) {
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.dropboxButton, { height: ITEM_HEIGHT }]}
-                onPress={handleAiSummary}
+                onPress={() => {
+                  handleAiSummary();
+                  closeDropbox();
+                }}
               >
                 <Text style={styles.dropboxButtonText}>
                   {t("ai_note_summary")}
@@ -306,7 +326,10 @@ export default function NoteDetailScreen({ route, navigation }) {
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.dropboxButton, { height: ITEM_HEIGHT }]}
-                onPress={handleAiQuiz}
+                onPress={() => {
+                  handleAiQuiz();
+                  closeDropbox();
+                }}
               >
                 <Text style={styles.dropboxButtonText}>
                   {t("ai_note_questions")}
