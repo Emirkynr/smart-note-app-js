@@ -37,3 +37,6 @@ yarn-error.*
 
 # build
 *.apk
+
+# APIKEYS
+*.env

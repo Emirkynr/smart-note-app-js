@@ -104,6 +104,7 @@ export default function NotesScreen({ navigation }) {
     };
     await saveNote(newNote);
     setNotes((prevNotes) => [...prevNotes, newNote]);
+    navigation.navigate("NoteDetail", { note: newNote }); // Yeni notu direkt aç
   };
 
   const handleLongPress = (noteId) => {

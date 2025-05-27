@@ -16,6 +16,7 @@ import {
 import Icon from "react-native-vector-icons/Ionicons";
 import { useTranslation } from "../locales/TranslationProvider";
 import { saveNote, loadNotes } from "../storage/NotesStorage";
+import { OPENAI_API_KEY, OCR_API_KEY } from "@env";
 
 export default function NoteDetailScreen({ route, navigation }) {
   const { note, noteId } = route.params || {};
@@ -114,13 +115,112 @@ export default function NoteDetailScreen({ route, navigation }) {
   };
 
   const handleContentChange = (text) => {
-    setCurrentNote((prev) => ({ ...prev, content: text }));
+    // AI özet ve quiz'i tekrar ekle
+    let newContent = text.trim();
+    if (aiSummary) newContent += `\n\n<AISUMMARY>\n${aiSummary}\n</AISUMMARY>`;
+    if (aiQuiz) newContent += `\n\n<AIQUIZ>\n${aiQuiz}\n</AIQUIZ>`;
+    setCurrentNote((prev) => ({ ...prev, content: newContent }));
   };
 
   const handleScanText = () => {
     navigation.navigate("CameraScreen", {
       noteId: currentNote.id,
     });
+  };
+
+  async function getAiSummary(text) {
+    const prompt = `Aşağıdaki notu kısa ve öz bir şekilde özetle:\n\n${text}`;
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${OPENAI_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: "gpt-3.5-turbo",
+        messages: [{ role: "user", content: prompt }],
+        max_tokens: 200,
+        temperature: 0.7,
+      }),
+    });
+    const data = await response.json();
+    return data.choices?.[0]?.message?.content?.trim() || "";
+  }
+
+  async function getAiQuiz(text) {
+    const prompt = `Aşağıdaki notun içeriğine göre 3 adet kısa bilgi yarışması (quiz) sorusu ve cevapları üret:\n\n${text}`;
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${OPENAI_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: "gpt-3.5-turbo",
+        messages: [{ role: "user", content: prompt }],
+        max_tokens: 300,
+        temperature: 0.7,
+      }),
+    });
+    const data = await response.json();
+    return data.choices?.[0]?.message?.content?.trim() || "";
+  }
+
+  // AI özet ve quiz ayrı tutulacak
+  const [aiSummary, setAiSummary] = useState("");
+  const [aiQuiz, setAiQuiz] = useState("");
+
+  // Not açıldığında, varsa eski özet/quiz'i ayıkla
+  useEffect(() => {
+    if (currentNote) {
+      // AI özet ve quiz'i not içeriğinden ayıkla
+      const summaryMatch = currentNote.content.match(/<AISUMMARY>([\s\S]*?)<\/AISUMMARY>/);
+      const quizMatch = currentNote.content.match(/<AIQUIZ>([\s\S]*?)<\/AIQUIZ>/);
+      setAiSummary(summaryMatch ? summaryMatch[1].trim() : "");
+      setAiQuiz(quizMatch ? quizMatch[1].trim() : "");
+    }
+  }, [currentNote]);
+
+  // Notun ana içeriğini, AI özet ve quiz olmadan al
+  const getMainContent = () => {
+    let content = currentNote?.content || "";
+    content = content.replace(/<AISUMMARY>[\s\S]*?<\/AISUMMARY>/, "");
+    content = content.replace(/<AIQUIZ>[\s\S]*?<\/AIQUIZ>/, "");
+    return content.trim();
+  };
+
+  // AI özet fonksiyonu
+  const handleAiSummary = async () => {
+    const mainContent = getMainContent();
+    if (!mainContent) return;
+    try {
+      const summary = await getAiSummary(mainContent);
+      setAiSummary(summary);
+      // Notun içeriğini güncelle (özet ve quiz'i güncel şekilde ekle)
+      let newContent = mainContent;
+      if (aiQuiz) newContent += `\n\n<AIQUIZ>\n${aiQuiz}\n</AIQUIZ>`;
+      newContent += `\n\n<AISUMMARY>\n${summary}\n</AISUMMARY>`;
+      setCurrentNote((prev) => ({ ...prev, content: newContent }));
+    } catch (e) {
+      Alert.alert("AI Hatası", "Özet alınamadı.");
+    }
+  };
+
+  // AI quiz fonksiyonu
+  const handleAiQuiz = async () => {
+    const mainContent = getMainContent();
+    if (!mainContent) return;
+    try {
+      const quiz = await getAiQuiz(mainContent);
+      setAiQuiz(quiz);
+      // Notun içeriğini güncelle (özet ve quiz'i güncel şekilde ekle)
+      let newContent = mainContent;
+      if (aiSummary) newContent += `\n\n<AISUMMARY>\n${aiSummary}\n</AISUMMARY>`;
+      newContent += `\n\n<AIQUIZ>\n${quiz}\n</AIQUIZ>`;
+      setCurrentNote((prev) => ({ ...prev, content: newContent }));
+    } catch (e) {
+      Alert.alert("AI Hatası", "Quiz alınamadı.");
+    }
   };
 
   return (
@@ -133,14 +233,34 @@ export default function NoteDetailScreen({ route, navigation }) {
           placeholder="Başlık"
           onFocus={closeDropbox}
         />
-        <TextInput
-          style={styles.contentInput}
-          value={currentNote.content}
-          onChangeText={handleContentChange}
-          placeholder="İçerik"
-          multiline
-          onFocus={closeDropbox}
-        />
+        <ScrollView style={{ flex: 1 }}>
+          <TextInput
+            style={styles.contentInput}
+            value={getMainContent()}
+            onChangeText={handleContentChange}
+            placeholder="İçerik"
+            multiline
+            blurOnSubmit={false}
+            returnKeyType="default"
+            onFocus={closeDropbox}
+          />
+
+          {/* AI Özet kutusu */}
+          {aiSummary ? (
+            <View style={styles.aiBox}>
+              <Text style={styles.aiBoxTitle}>AI Özet</Text>
+              <Text style={styles.aiBoxContent}>{aiSummary}</Text>
+            </View>
+          ) : null}
+
+          {/* AI Quiz kutusu */}
+          {aiQuiz ? (
+            <View style={styles.aiBox}>
+              <Text style={styles.aiBoxTitle}>AI Quiz</Text>
+              <Text style={styles.aiBoxContent}>{aiQuiz}</Text>
+            </View>
+          ) : null}
+        </ScrollView>
 
         <TouchableOpacity style={styles.aiButton} onPress={toggleDropbox}>
           <Icon name="logo-android" size={24} color="white" />
@@ -175,6 +295,7 @@ export default function NoteDetailScreen({ route, navigation }) {
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.dropboxButton, { height: ITEM_HEIGHT }]}
+                onPress={handleAiSummary}
               >
                 <Text style={styles.dropboxButtonText}>
                   {t("ai_note_summary")}
@@ -182,6 +303,7 @@ export default function NoteDetailScreen({ route, navigation }) {
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.dropboxButton, { height: ITEM_HEIGHT }]}
+                onPress={handleAiQuiz}
               >
                 <Text style={styles.dropboxButtonText}>
                   {t("ai_note_questions")}
@@ -205,9 +327,9 @@ const styles = StyleSheet.create({
     borderBottomColor: "#ccc",
   },
   contentInput: {
-    flex: 1,
     fontSize: 18,
     textAlignVertical: "top",
+    minHeight: 120,
   },
   aiButton: {
     position: "absolute",
@@ -244,6 +366,25 @@ const styles = StyleSheet.create({
   },
   dropboxButtonText: {
     fontSize: 16,
+    color: "#333",
+  },
+  aiBox: {
+    backgroundColor: "#e3f2fd",
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 16,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: "#90caf9",
+  },
+  aiBoxTitle: {
+    fontWeight: "bold",
+    fontSize: 16,
+    color: "#1976d2",
+    marginBottom: 6,
+  },
+  aiBoxContent: {
+    fontSize: 15,
     color: "#333",
   },
 });

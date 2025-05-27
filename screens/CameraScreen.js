@@ -1,6 +1,7 @@
 import * as ImagePicker from "expo-image-picker";
 import React, { useEffect, useState } from "react";
 import { Button, Image, View, Text, Alert } from "react-native";
+import { OCR_API_KEY } from "@env"; // .env'den anahtarı çek
 
 export default function CameraScreen({ route, navigation }) {
   const { noteId } = route.params; // Note ID'yi al
@@ -49,7 +50,7 @@ export default function CameraScreen({ route, navigation }) {
 
     try {
       const res = await fetch(
-        `https://vision.googleapis.com/v1/images:annotate?key=AIzaSyCscQgs00R1J63ViV46kA74b9jRzcWhHTI`,
+        `https://vision.googleapis.com/v1/images:annotate?key=${OCR_API_KEY}`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
