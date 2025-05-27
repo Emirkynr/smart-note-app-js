@@ -117,6 +117,12 @@ function AppNavigator() {
             headerShown: false,
             tabBarLabel: t('NotesPageName'),
           }}
+          listeners={({ navigation }) => ({
+            tabPress: e => {
+              // Notlar tabına her basıldığında NotesScreen'e git
+              navigation.navigate('Notes', { screen: 'Notes' });
+            },
+          })}
         />
         <Tab.Screen
           name="Settings"

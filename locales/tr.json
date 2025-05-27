@@ -13,5 +13,6 @@
   "convert_audio_to_note": "Ses Kaydını Nota Dönüştür",
   "read_note_aloud": "Notu Sesli Oku",
   "ai_note_summary": "AI Not Özeti",
-  "ai_note_questions": "AI Not Soruları"
+  "ai_note_questions": "AI Not Soruları",
+  "recent_notes": "Son Notlarım"
 }

@@ -13,5 +13,6 @@
   "convert_audio_to_note": "Convert Audio to Note",
   "read_note_aloud": "Read Note Aloud",
   "ai_note_summary": "AI Note Summary",
-  "ai_note_questions": "AI Note Questions"
+  "ai_note_questions": "AI Note Questions",
+  "recent_notes": "Recent Notes"
 }

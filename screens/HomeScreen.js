@@ -1,8 +1,10 @@
-import React, { useEffect, useRef, useContext } from 'react';
-import { View, Text, StyleSheet, Dimensions, ScrollView, Image } from 'react-native';
+import React, { useEffect, useRef, useContext, useState } from 'react';
+import { View, Text, StyleSheet, Dimensions, ScrollView, Image, FlatList, TouchableOpacity } from 'react-native';
 import { useTranslation } from '../locales/TranslationProvider';
 import themes from "../themes";
 import { ThemeContext } from "../contexts/ThemeContext";
+import { loadNotes } from "../storage/NotesStorage";
+import { useFocusEffect } from '@react-navigation/native';
 
 const { width, height } = Dimensions.get('window');
 const IMAGE_WIDTH = width * 0.85;
@@ -21,6 +23,7 @@ export default function HomeScreen({ navigation }) {
   const colors = themes[theme];
   const scrollRef = useRef(null);
   const currentIndex = useRef(0);
+  const [recentNotes, setRecentNotes] = useState([]);
 
   useEffect(() => {
     navigation.setOptions({ title: t('homePageName') });
@@ -42,6 +45,46 @@ export default function HomeScreen({ navigation }) {
     }, 3000);
     return () => clearInterval(timer);
   }, []);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      const fetchNotes = async () => {
+        const notes = await loadNotes();
+        const sorted = [...notes]
+          .map(n => ({
+            ...n,
+            latestChangeDate: n.latestChangeDate || n.createdAt || n.date || n.updatedAt || "1970-01-01T00:00:00Z"
+          }))
+          .sort((a, b) => new Date(b.latestChangeDate) - new Date(a.latestChangeDate))
+          .slice(0, 6);
+        setRecentNotes(sorted);
+      };
+      fetchNotes();
+    }, [])
+  );
+
+  const renderNote = ({ item }) => (
+    <TouchableOpacity
+      style={[
+        styles.noteItem,
+        {
+          backgroundColor: colors.noteBg,
+          borderColor: colors.noteBorder,
+        },
+      ]}
+      onPress={() =>
+        navigation.navigate("Notes", {
+          screen: "NoteDetail",
+          params: { note: item },
+        })
+      }
+      activeOpacity={0.8}
+    >
+      <Text style={[styles.noteTitle, { color: colors.text }]} numberOfLines={2}>
+        {item.title}
+      </Text>
+    </TouchableOpacity>
+  );
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>  
@@ -67,11 +110,23 @@ export default function HomeScreen({ navigation }) {
           ))}
         </ScrollView>
       </View>
-      <View style={styles.content}>
-        <Text style={[styles.text, { color: colors.text }]}>
-          {t('hello')}
-        </Text>
-      </View>
+      <ScrollView style={styles.content} contentContainerStyle={{ flexGrow: 1 }}>
+        {/* Son Notlarım Bölümü */}
+        <View style={styles.recentNotesSection}>
+          <Text style={[styles.recentNotesTitle, { color: colors.text }]}>
+            {t('recent_notes')}
+          </Text>
+          <FlatList
+            data={recentNotes}
+            keyExtractor={item => item.id}
+            renderItem={renderNote}
+            numColumns={2}
+            contentContainerStyle={{ paddingBottom: 16 }}
+            columnWrapperStyle={{ justifyContent: 'space-between' }}
+            scrollEnabled={false} // FlatList scroll'u kapalı, ScrollView ile birlikte
+          />
+        </View>
+      </ScrollView>
     </View>
   );
 }
@@ -88,4 +143,28 @@ const styles = StyleSheet.create({
   image: { marginRight: 0 },
   content: { flex: 1, padding: 20 },
   text: { fontSize: 20 },
+  recentNotesSection: {
+    marginTop: 16,
+    paddingHorizontal: 20,
+  },
+  recentNotesTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    marginBottom: 8,
+  },
+  noteItem: {
+    width: "48%",
+    aspectRatio: 1,
+    borderRadius: 10,
+    borderWidth: 1,
+    marginBottom: 12,
+    padding: 12,
+    backgroundColor: "#fff",
+    borderColor: "#ccc",
+    justifyContent: "center",
+  },
+  noteTitle: {
+    fontSize: 16,
+    fontWeight: "bold",
+  },
 });

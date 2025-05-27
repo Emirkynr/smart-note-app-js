@@ -76,7 +76,7 @@ export default function NoteDetailScreen({ route, navigation }) {
         saveNote(currentNote);
         setOriginalNote(currentNote);
       }
-    }, 1000);
+    }, 50); // 50 ms'ye çekildi
 
     return () => clearInterval(saveInterval);
   }, [currentNote, originalNote]);
@@ -110,10 +110,17 @@ export default function NoteDetailScreen({ route, navigation }) {
 
   // Not başlığını navigation başlığına ayarla
   useEffect(() => {
-    if (currentNote?.title) {
-      navigation.setOptions({ title: currentNote.title });
-    }
-  }, [currentNote?.title, navigation]);
+    navigation.setOptions({
+      title: currentNote?.title || "",
+      headerLeft: navigation.canGoBack()
+        ? undefined
+        : () => (
+            <TouchableOpacity onPress={() => navigation.navigate("Home")}>
+              <Icon name="arrow-back" size={24} color={colors.text} style={{ marginLeft: 16 }} />
+            </TouchableOpacity>
+          ),
+    });
+  }, [currentNote?.title, navigation, colors.text]);
 
   if (!currentNote) {
     return (
@@ -123,8 +130,24 @@ export default function NoteDetailScreen({ route, navigation }) {
     );
   }
 
+  const handleContentChange = (text) => {
+    setNoteContent(text);
+    let newContent = text;
+    if (aiSummary) newContent += `\n\n<AISUMMARY>\n${aiSummary}\n</AISUMMARY>`;
+    if (aiQuiz && aiQuiz.length > 0) newContent += `\n\n<AIQUIZ>\n${JSON.stringify(aiQuiz)}\n</AIQUIZ>`;
+    setCurrentNote((prev) => ({
+      ...prev,
+      content: newContent,
+      latestChangeDate: new Date().toISOString(), // güncelle
+    }));
+  };
+
   const handleTitleChange = (text) => {
-    setCurrentNote((prev) => ({ ...prev, title: text }));
+    setCurrentNote((prev) => ({
+      ...prev,
+      title: text,
+      latestChangeDate: new Date().toISOString(), // güncelle
+    }));
   };
 
   const [noteContent, setNoteContent] = useState("");
@@ -139,16 +162,6 @@ export default function NoteDetailScreen({ route, navigation }) {
       // ...aiSummary ve aiQuiz ayıklama kodun burada kalabilir...
     }
   }, [currentNote]);
-
-  // TextInput değişikliğinde sadece ana içeriği güncelle
-  const handleContentChange = (text) => {
-    setNoteContent(text);
-    // AI özet ve quiz'i tekrar ekle
-    let newContent = text;
-    if (aiSummary) newContent += `\n\n<AISUMMARY>\n${aiSummary}\n</AISUMMARY>`;
-    if (aiQuiz && aiQuiz.length > 0) newContent += `\n\n<AIQUIZ>\n${JSON.stringify(aiQuiz)}\n</AIQUIZ>`;
-    setCurrentNote((prev) => ({ ...prev, content: newContent }));
-  };
 
   const handleScanText = () => {
     navigation.navigate("CameraScreen", {
