@@ -139,6 +139,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
     marginVertical: 8,
+    marginTop: '8%', // %15 kadar aşağı kaydır
   },
   image: { marginRight: 0 },
   content: { flex: 1, padding: 20 },
